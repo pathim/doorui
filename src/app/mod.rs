@@ -61,7 +61,7 @@ impl<T: Db, B: Backend> App<T, B> {
         false
     }
 
-    pub fn ui(&self, f: &mut Frame<B>) {
+    pub fn ui(&mut self, f: &mut Frame<B>) {
         let size = f.size();
         let titles = self
             .tabs
