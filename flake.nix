@@ -47,6 +47,7 @@
               }).cargoHome
             ]);
           buildInputs = [
+            sqlite
           ];
 
           shellHook = ''

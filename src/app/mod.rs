@@ -1,41 +1,72 @@
-mod state;
+mod screens;
+mod tab;
 
+use self::screens::Screen;
+use tab::Tab;
+
+use super::database::Db;
 use crossterm::event::KeyCode;
 use tui::{
     backend::Backend,
     layout::{Constraint, Layout},
     style::{Color, Style},
     text::Spans,
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders},
     Frame,
 };
 
-pub struct App {
-    s: state::State,
+pub struct App<T: Db, B: Backend> {
+    db: T,
+    tabs: Vec<Tab<B>>,
+    current_tab: usize,
 }
 
-impl App {
-    pub fn new() -> Self {
+impl<T: Db, B: Backend> App<T, B> {
+    pub fn new(db: T) -> Self {
+        let mut tabs = vec![
+            Tab::new(
+                String::from("Logs Failure"),
+                Box::new(screens::logs::Logs::new(Box::new(|db: &dyn Db| {
+                    db.get_logs_failure()
+                }))),
+            ),
+            Tab::new(
+                String::from("Logs Success"),
+                Box::new(screens::logs::Logs::new(Box::new(|db: &dyn Db| {
+                    db.get_logs_success()
+                }))),
+            ),
+        ];
+        tabs[0].screen.refresh(&db);
         Self {
-            s: state::State::default(),
+            db,
+            tabs,
+            current_tab: 0,
         }
     }
 
     pub fn handle_key(&mut self, key: KeyCode) -> bool {
         match key {
             KeyCode::Esc => return true,
-            KeyCode::F(1) => self.s.tab = state::Tabs::Edit,
-            KeyCode::F(2) => self.s.tab = state::Tabs::Logs,
-            _ => {}
+            KeyCode::F(x) => {
+                if x > 0 && (x as usize) <= self.tabs.len() {
+                    self.current_tab = (x - 1) as usize;
+                    self.tabs[self.current_tab].screen.refresh(&self.db);
+                }
+            }
+            _ => {
+                self.tabs[self.current_tab].screen.handle_key(key);
+            }
         }
         false
     }
 
-    pub fn ui<B: Backend>(&self, f: &mut Frame<B>) {
+    pub fn ui(&self, f: &mut Frame<B>) {
         let size = f.size();
-        let titles = state::Tabs::names()
+        let titles = self
+            .tabs
             .iter()
-            .cloned()
+            .map(|x| x.title.clone())
             .map(Spans::from)
             .collect();
         let chunks = Layout::default()
@@ -47,16 +78,8 @@ impl App {
             .style(Style::default().fg(Color::White))
             .highlight_style(Style::default().fg(Color::Yellow))
             .divider(tui::symbols::DOT)
-            .select(self.s.tab as usize);
+            .select(self.current_tab as usize);
         f.render_widget(tabs, chunks[0]);
-
-        match self.s.tab {
-            state::Tabs::Edit => {
-                f.render_widget(Paragraph::new("Hier muss das Bearbeiten hin"), chunks[1])
-            }
-            state::Tabs::Logs => {
-                f.render_widget(Paragraph::new("Hier stehen dann die logs"), chunks[1])
-            }
-        };
+        self.tabs[self.current_tab].screen.ui(f, chunks[1]);
     }
 }

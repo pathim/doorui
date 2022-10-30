@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 tui = "0.19"
 crossterm = "0.25"
+rusqlite = {version="0.28.0", features=["chrono"]}
+chrono = "0.4.22"
