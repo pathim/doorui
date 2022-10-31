@@ -47,18 +47,15 @@ impl<T: Db, B: Backend> App<T, B> {
 
     pub fn handle_key(&mut self, key: KeyCode) -> bool {
         match key {
-            KeyCode::Esc => return true,
             KeyCode::F(x) => {
                 if x > 0 && (x as usize) <= self.tabs.len() {
                     self.current_tab = (x - 1) as usize;
                     self.tabs[self.current_tab].screen.refresh(&self.db);
-                }
+                };
+                false
             }
-            _ => {
-                self.tabs[self.current_tab].screen.handle_key(key);
-            }
+            _ => self.tabs[self.current_tab].screen.handle_key(key, &self.db),
         }
-        false
     }
 
     pub fn ui(&mut self, f: &mut Frame<B>) {

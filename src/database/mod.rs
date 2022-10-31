@@ -3,7 +3,7 @@ use std::fmt::Display;
 pub mod mysql;
 pub mod sqlite;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Card {
     pub uid: String,
     pub pin: String,
